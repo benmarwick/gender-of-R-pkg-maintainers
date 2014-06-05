@@ -7,20 +7,20 @@ library("lubridate")
 
 # Thanks Dirk: http://stackoverflow.com/a/11561793/1036500
 getPackagesWithTitle <- function() {
-          contrib.url(getOption("repos")["CRAN"], "source") 
-          description <- sprintf("%s/web/packages/packages.rds",  getOption("repos")["CRAN"])
-          con <- if(substring(description, 1L, 7L) == "file://") {
-                file(description, "rb")
-            } else {
-                  url(description, "rb")
-              }
-          on.exit(close(con))
-          db <- readRDS(gzcon(con))
-          rownames(db) <- NULL
-            db[, c("Package", "Title")]
-      }
+  contrib.url(getOption("repos")["CRAN"], "source") 
+  description <- sprintf("%s/web/packages/packages.rds",  getOption("repos")["CRAN"])
+  con <- if(substring(description, 1L, 7L) == "file://") {
+    file(description, "rb")
+  } else {
+    url(description, "rb")
+  }
+  on.exit(close(con))
+  db <- readRDS(gzcon(con))
+  rownames(db) <- NULL
+  return(db)
+}
 
-bd <- getPackagesWithTitle()
+db <- getPackagesWithTitle()
 
 db_df <- data.frame(db)
 maintainter_year <- data.frame(name = unname(db_df$Maintainer),
@@ -55,11 +55,11 @@ ggplot(cran_genders, aes(gender)) +
 
 # change over time
 cran_genders$year <- strptime(cran_genders$year, format = "%Y")
-cran_genders$year  <- as.Date(cran_genders$year, "%Y")
+cran_genders$year  <- as.Date(cran_genders$year, "%Y", origin = "1900")
 
 # plot with smoother
 ggplot(cran_genders, aes(year, fill = gender)) +
-  geom_bar(binwidth=100) +
+  geom_bar() +
   theme_minimal() 
 
 ggplot(cran_genders, aes(year, fill = gender)) +
@@ -75,7 +75,6 @@ cran_genders %>%
   summarise(
     ml = sum(gender == "male")/length(gender),
     fl = sum(gender == "female")/length(gender)
-    )
-
+  )
 
 
