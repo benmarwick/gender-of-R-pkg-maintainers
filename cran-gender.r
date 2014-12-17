@@ -1,5 +1,6 @@
 require("tools")
 require("gender")
+require("genderdata")
 require("Hmisc")
 require("stringr")
 require("ggplot2")
@@ -7,6 +8,7 @@ require("scales")
 require("dplyr")
 require("XML")
 require("RCurl")
+require("reshape2")
 
 # Thanks Dirk: http://stackoverflow.com/a/11561793/1036500
 getPackagesWithTitle <- function() {
@@ -27,24 +29,7 @@ db <- getPackagesWithTitle()
 
 db_df <- data.frame(db)
 maintainer_year_unclean <- data.frame(name = unname(db_df$Maintainer),
-                               year = as.integer(substr(unname(db_df$Published), 1, 4)))
-# problems... 'published' date is only most recent version, date
-# of first appearence must come from 'Old sources' archive list
-# have to webscrape on http://cran.r-project.org/src/contrib/Archive/$PACKAGE
-# to get top row of table
-pckg_data <- vector("list", length(nrow(db_df)))
-for(i in 1:nrow(db_df)){
-  print(i)
-  pckge <- db_df$Package[i]
-  theurl <- paste0("http://cran.r-project.org/src/contrib/Archive/", db_df$Package[i])
-  result <- try(
-    tab <- readHTMLTable(theurl),
-  ); if(class(result) == "try-error") next;
-
-  # get the date of the earliest archive
-  first_date <- strptime(tab[[1]]$`Last modified`[3], "%d-%b-%Y %H:%M")
-  pckg_data[[i]] <- data.frame(year = first_date, pckge = pckge)
-}
+                                      year = as.integer(substr(unname(db_df$Published), 1, 4)))
 
 
 clean_up <- function(x){
@@ -63,21 +48,52 @@ maintainer_year_clean <- maintainer_year_unclean
 maintainer_year_clean$name <- clean_up(maintainer_year_clean$name)
 
 # compute gender of package maintainers
-cran_genders_with_nas <- gender(maintainer_year_clean)
+cran_genders_with_nas <- gender(maintainer_year_clean$name)
 # remove NA (where we can't be sure of the gender because
 # we've only got a first initial, or similar)
-idx <- !is.na(cran_genders_with_nas$gender)
-cran_genders <- cran_genders_with_nas[idx,]
+cran_genders_with_nas <- unlist(lapply(cran_genders_with_nas, function(i) i$gender))
+idx <- !is.na(cran_genders_with_nas)
+cran_genders <- cran_genders_with_nas[idx]
+
+# overall counts
+counts <- data.frame(female = cran_genders == "female" ,
+                    male = cran_genders == "male")
+counts_l <- melt(counts + 0)
+ggplot(counts_l, aes(variable, value)) +
+  geom_bar(stat = "identity") +
+  theme_minimal(base_size = 14)
 
 # overall ratio
-all <- nrow(cran_genders)
-props <- data.frame(female_prop = sum(cran_genders$gender == "female")/all,
-                    male_prop = sum(cran_genders$gender == "male")/all)
-ggplot(cran_genders, aes(gender)) +
-  geom_bar() +
+all <- length(cran_genders)
+props <- data.frame(female_prop = sum(cran_genders == "female")/all,
+                    male_prop = sum(cran_genders == "male")/all)
+props_l <- melt(props)
+ggplot(props_l, aes(variable, value)) +
+  geom_bar(stat = "identity") +
   theme_minimal(base_size = 14)
 
 # change over time
+
+
+# # problems... 'published' date is only most recent version, date
+# # of first appearence must come from 'Old sources' archive list
+# # have to webscrape on http://cran.r-project.org/src/contrib/Archive/$PACKAGE
+# # to get top row of table
+# pckg_data <- vector("list", length(nrow(db_df)))
+# for(i in 1:nrow(db_df)){
+#   print(i)
+#   pckge <- db_df$Package[i]
+#   theurl <- paste0("http://cran.r-project.org/src/contrib/Archive/", db_df$Package[i])
+#   result <- try(
+#     tab <- readHTMLTable(theurl),
+#   ); if(class(result) == "try-error") next;
+#   
+#   # get the date of the earliest archive
+#   first_date <- strptime(tab[[1]]$`Last modified`[3], "%d-%b-%Y %H:%M")
+#   pckg_data[[i]] <- data.frame(year = first_date, pckge = pckge)
+# }
+
+
 cran_genders$year  <- as.POSIXlt(strptime(cran_genders$year, "%Y"))$year+1900 
 
 # plot absolute values
@@ -132,14 +148,8 @@ edu_genders <- edu_genders_with_nas[idx,]
 # overall ratio
 all <- nrow(edu_genders)
 props_edu <- data.frame(female_prop = sum(edu_genders$gender == "female")/all,
-                    male_prop = sum(edu_genders$gender == "male")/all)
+                        male_prop = sum(edu_genders$gender == "male")/all)
 ggplot(edu_genders, aes(gender)) +
   geom_bar() +
   theme_minimal(base_size = 14)
 # no, basically the same
-
-# how about uk, fr, be, it, es emails?
-
-# version numbers?
-
-# In views ?
