@@ -1,0 +1,288 @@
+```{r setup, echo=FALSE, message=FALSE}
+require(knitr)
+opts_chunk$set(message=FALSE, warning=FALSE, cache=TRUE)
+```
+
+## Gender, R package maintainers, and the R Foundation
+
+Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, and how it compares to the R Foundation membership. 
+
+First, I look at the overall counts and ratio of genders of R package maintainers.
+
+Second, I have a brief look to see how this has changed over time.
+
+Third, I look to see how the ratio of genders of R package maintainers, as a proxy for the R user community, is reflected by the R Foundation, as an entity representing users and leading the R Project. 
+
+```{r}
+require("tools")
+require("gender")
+require("genderdata")
+require("Hmisc")
+require("stringr")
+require("ggplot2")
+require("scales")
+require("dplyr")
+require("XML")
+require("RCurl")
+require("reshape2")
+```
+
+```{r}
+# Thanks Dirk: http://stackoverflow.com/a/11561793/1036500
+getPackagesWithTitle <- function() {
+  contrib.url(getOption("repos")["CRAN"], "source") 
+  description <- sprintf("%s/web/packages/packages.rds",  getOption("repos")["CRAN"])
+  con <- if(substring(description, 1L, 7L) == "file://") {
+    file(description, "rb")
+  } else {
+    url(description, "rb")
+  }
+  on.exit(close(con))
+  db <- readRDS(gzcon(con))
+  rownames(db) <- NULL
+  return(db)
+}
+```
+
+```{r}
+## Set default repo
+local({r <- getOption("repos"); 
+       r["CRAN"] <- "http://cran.r-project.org"; options(repos=r)})
+
+db <- getPackagesWithTitle()
+
+db_df <- data.frame(db)
+maintainer_year_unclean <- data.frame(name = unname(db_df$Maintainer),
+                                      year = as.integer(substr(unname(db_df$Published), 1, 4)))
+```
+
+```{r}
+
+clean_up <- function(x){
+  # get rid of punctuation
+  x1 <- gsub("[[:punct:]]", " ", x)
+  # remove leading space before first name
+  x2 <- str_trim(x1 , side="left") 
+  # get first name only
+  x3 <- unlist(lapply(x2, first.word))
+  # gender function only takes lower case
+  x4 <- tolower(x3)
+  return(x4)
+}
+# apply function to data
+maintainer_year_clean <- maintainer_year_unclean
+maintainer_year_clean$name <- clean_up(maintainer_year_clean$name)
+
+# compute gender of package maintainers (this takes some time!)
+cran_genders_with_nas <- gender(maintainer_year_clean$name)
+# remove NA (where we can't be sure of the gender because
+# we've only got a first initial, or similar)
+cran_genders_with_nas <- unlist(lapply(cran_genders_with_nas, function(i) i$gender))
+idx <- !is.na(cran_genders_with_nas)
+cran_genders <- cran_genders_with_nas[idx]
+```
+
+
+```{r}
+# plots...
+
+# overall counts
+counts <- data.frame(female = cran_genders == "female" ,
+                    male = cran_genders == "male")
+counts_l <- melt(counts + 0)
+ggplot(counts_l, aes(variable, value)) +
+  geom_bar(stat = "identity") +
+  theme_minimal(base_size = 14) +
+  ggtitle("CRAN package maintainers by gender")
+```
+
+
+```{r}
+# overall ratio
+all <- length(cran_genders)
+props <- data.frame(female_prop = sum(cran_genders == "female")/all,
+                    male_prop = sum(cran_genders == "male")/all)
+props_l <- melt(props)
+ggplot(props_l, aes(variable, value)) +
+  geom_bar(stat = "identity") +
+  theme_minimal(base_size = 14) +
+  ggtitle("CRAN package maintainers by gender")
+```
+
+
+```{r}
+
+# change over time
+
+
+# # problems... 'published' date is only most recent version, date
+# # of first appearence must come from 'Old sources' archive list
+# # have to webscrape on http://cran.r-project.org/src/contrib/Archive/$PACKAGE
+# # to get top row of table
+pckg_data <- vector("list", length(nrow(db_df)))
+for(i in 1:nrow(db_df)){
+  # print(i) only for interactive use to know when to come back!
+  pckge <- db_df$Package[i]
+  theurl <- paste0("http://cran.r-project.org/src/contrib/Archive/", db_df$Package[i])
+  result <- try(
+    tab <- readHTMLTable(theurl),
+  ); if(class(result) == "try-error") next;
+  
+  # get the date of the earliest archive
+  first_date <- strptime(tab[[1]]$`Last modified`[3], "%d-%b-%Y %H:%M")
+  pckg_data[[i]] <- data.frame(year = first_date, pckge = pckge)
+}
+
+# add year on
+the_year  <- as.POSIXlt(strptime(maintainer_year_clean$year, "%Y"))$year + 1900 
+cran_genders_by_year <- cbind(cran_genders_with_nas, the_year) 
+# omit NA
+cran_genders_by_year <- data.frame(na.omit(cran_genders_by_year))
+
+# plot absolute values
+ggplot(cran_genders_by_year, aes(as.factor(the_year), fill = cran_genders_with_nas)) +
+  geom_bar(binwidth = 0.5) +
+  scale_x_discrete(breaks = unique(cran_genders_by_year$the_year ), 
+                   labels = unique(cran_genders_by_year$the_year )) +
+  theme_minimal(base_size = 14) +
+  xlab("year")
+
+# plot proportions
+ggplot(cran_genders_by_year, aes(as.factor(the_year), fill = cran_genders_with_nas)) +
+  geom_bar(position = "fill", aes(y=..count../sum(..count..))) +
+  scale_x_discrete(breaks = unique(cran_genders_by_year$the_year ), 
+                   labels = unique(cran_genders_by_year$the_year )) +
+  theme_minimal(base_size = 14) +
+  xlab("year") +
+  ylab("proportion")
+
+
+# table of counts and proportions
+gender_table <- cran_genders_by_year %>%
+  group_by(the_year) %>%
+  select(the_year, cran_genders_with_nas) %>%
+  summarise(
+    count_ml = sum(cran_genders_with_nas == "male"),
+    ml = sum(cran_genders_with_nas == "male")/length(cran_genders_with_nas),
+    count_fl = sum(cran_genders_with_nas == "female"),
+    fl = sum(cran_genders_with_nas == "female")/length(cran_genders_with_nas)
+  )
+
+
+overall_prop <- round(sum(gender_table$count_fl) / (sum(gender_table$count_ml) + sum(gender_table$count_fl)), 2)
+
+# overall check for interactive work
+x <- identical(
+  round(sum(gender_table$count_fl) / (sum(gender_table$count_ml) + sum(gender_table$count_fl)), 2), 
+# from above
+round(props$female_prop, 2))
+```
+
+Overall, roughly `r overall_prop * 100`% of CRAN maintainers are women.
+
+```{r}
+# Who are the pioneering women of R?
+maintainter_year_unclean_no_na_female <- maintainer_year_clean[idx & cran_genders_with_nas == 'female', ]
+table(maintainter_year_unclean_no_na_female[maintainter_year_unclean_no_na_female$year %in% 2006:2010,])
+ 
+```
+
+Now manaully inspect to match up the first names with full names to validate...
+
+A few mis-classified females, all of these are actually male:
+Xiaofeng Wang
+Lin Himmelmann 
+Na (Michael) Li
+Chi Yau
+
+A 'pioneer' is someone maintaining an R package in the first five years of the dataset. Here are the top five pioneering R package maintainers who are women: 
+
+Pei Wang
+Samantha Cook
+Hanna Jankowski
+Ji-Hyung Shin
+Xiao-Feng Wang
+
+Samantha Cook was the first female R package maintainer, and Pei Wang was the most prolific during this period
+
+Here are the top R package maintainers who are women in the whole dataset (2005-2014):
+
+```{r}
+# Who are the top women of R, in terms of maintaining CRAN packages?
+maintainter_year_unclean_no_na_female <- maintainer_year_clean[idx & cran_genders_with_nas == 'female', ]
+
+# Make a table that counts the number of packages by each woman, and put the table in order of most to least
+maintainter_year_unclean_no_na_female %>%
+  group_by(name) %>%
+  summarise(number_of_packages = length(year)) %>%
+  arrange(desc(number_of_packages))
+```
+
+A bit more to do here. We know about hadley, but robin, jean, jan and karline could be male names. So let's look further.
+
+```{r}
+# robin
+maintainer_year_unclean[maintainer_year_clean$name == 'robin', ] %>%
+  group_by(name) %>%
+  summarise(number_of_packages = length(year)) %>%
+  arrange(desc(number_of_packages))
+
+# jean
+maintainer_year_unclean[maintainer_year_clean$name == 'jean', ] %>%
+  group_by(name) %>%
+  summarise(number_of_packages = length(year)) %>%
+  arrange(desc(number_of_packages))
+
+# jan
+maintainer_year_unclean[maintainer_year_clean$name == 'jan', ] %>%
+  group_by(name) %>%
+  summarise(number_of_packages = length(year)) %>%
+  arrange(desc(number_of_packages))
+```
+
+With the aid of Google Image search, we can conclude that all the robins, jeans, and jans in the data are male. So let's remove them from the 'top women in R' table
+
+```{r}
+maintainer_female <- maintainter_year_unclean_no_na_female[!(maintainter_year_unclean_no_na_female$name %in% c('robin', 'jean', 'hadley', 'jan', 'yu', 'gopi')), ]
+
+top_women <- maintainer_female %>%
+  group_by(name) %>%
+  summarise(number_of_packages = length(year)) %>%
+  arrange(desc(number_of_packages))
+
+# get full names
+maintainer_year_unclean$first_name <- maintainer_year_clean$name
+
+top_women_full_names <- maintainer_year_unclean %>%
+  filter(first_name %in% top_women$name) %>%
+  group_by(name) %>%
+  summarise(number_of_packages = length(year)) %>%
+  arrange(desc(number_of_packages))
+top_women_full_names
+```
+
+Here we see the top R package maintainers who are women. Karline Soetaert and Hana Sevcikova stand out with more than ten packages each. Soetaert is also the author of two major books on using R published by Springer.
+
+```{r}
+# from https://gist.github.com/hadley/3bdb98c09e602c301d76
+members <- c("Bill Venables", "Brian Ripley", "Douglas Bates", "Duncan Murdoch", "Duncan Temple Lang", "Friedrich Leisch", "John Chambers", "John Fox", "Kurt Hornik", "Luke Tierney", "Martin Maechler", "Martyn Plummer", "Paul Murrell", "Peter Dalgaard", "Robert Gentleman", "Roger Bivand", "Ross Ihaka", "Simon Urbanek", "Stefano Iacus", "Thomas Lumley")
+ 
+core <- c("Douglas Bates", "John Chambers", "Peter Dalgaard", "Seth Falcon", "Robert Gentleman", "Kurt Hornik", "Stefano Iacus", "Ross Ihaka", "Friedrich Leisch", "Uwe Ligges", "Thomas Lumley", "Martin Maechler", "Duncan Murdoch", "Paul Murrell", "Martyn Plummer", "Brian Ripley", "Deepayan Sarkar", "Duncan Temple Lang", "Luke Tierney", "Simon Urbanek")
+ 
+```
+
+Given that `r overall_prop * 100`% of R package maintainers are women, and that the number of members of the R Foundation is `r length(members)`, then for an approximate representation of active R developers in the R Foundation, we should expect  `r overall_prop * length(members)` to be female. Let's see how that compares to the actual gender ratio of the R Foundation (easy to guess, but let's work it out to be sure).
+
+```{r}
+members_first_names <- clean_up(members)
+members_gender <- gender(members_first_names)
+members_gender <- unlist(lapply(members_gender, function(i) i$gender))
+prop_female <- sum(members_gender == 'female') / length(members_gender)
+```
+
+And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it's recommended that Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer be voted in as ordinary members of the R Foundation. 
+
+While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as reference point for the many women currently learning and using R. 
+
+
+
