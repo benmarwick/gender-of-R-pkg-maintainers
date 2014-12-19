@@ -5,13 +5,9 @@ opts_chunk$set(message=FALSE, warning=FALSE, cache=TRUE)
 
 ## Gender, R package maintainers, and the R Foundation
 
-Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, and how it compares to the R Foundation membership. I started this in June,  motivated by the "Conversation about R’s Gender Gap: The useR! her Panel" at the UseR meeting (http://user2014.stat.ucla.edu/). A recent discussion amongst Jennifer Bryan, Hadley Wickham, and Erin LeDell on twitter prompted me to pursue it a bit further (https://twitter.com/JennyBryan/status/544970521348034561).
+Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, and how it compares to the R Foundation membership. I started this in June,  motivated by the "Conversation about R’s Gender Gap: The useR! her Panel" at the UseR meeting (http://user2014.stat.ucla.edu/). A recent discussion amongst Jennifer Bryan, Hadley Wickham, and Erin LeDell on twitter where it was noted that only one contributor to R core is a woman, further prompted me to pursue it (https://twitter.com/JennyBryan/status/544970521348034561).
 
-First, I looked at the overall counts and ratio of genders of R package maintainers.
-
-Second, I had a brief look to see how this has changed over time.
-
-Third, I looked to see how the ratio of genders of R package maintainers, as a proxy for the R user community, is reflected by the R Foundation, as an entity representing users and leading the R Project. 
+Here's what I've done. First, I looked at the overall counts and ratio of genders of R package maintainers. I found that roughly 15% are women. Second, I had a brief look to see how this has changed over time. I found that the proportion of women maintainers has actually been dropping slightly in recent years. Third, I looked to see how the ratio of genders of R package maintainers, as a proxy for the R user community, is reflected by the R Foundation, as an entity representing users and leading the R Project. I found, as most R users probably know, that the R Foundation is all male, but it should have at least three women on the list to adequetely represent active R developers. I recommend some specific R developers to add to the R Foundation to improve the effectiveness of the Foundation as a group acting in the interests of R Project and its developers and users.
 
 ```{r}
 require("tools")
@@ -155,22 +151,7 @@ ggplot(cran_genders_by_year, aes(as.factor(the_year), fill = cran_genders_with_n
   scale_fill_discrete(name = "gender")
 ```
 
-The total number of packages maintained by women has increased over time, roughly consistent with the overall increase in the number of packages. Note that for the change over time data we use only packages that have at least one archived version to exclude once-off, drive-by packages. 
-
-```{r}
-# plot proportions
-ggplot(cran_genders_by_year, aes(as.factor(the_year), fill = cran_genders_with_nas)) +
-  geom_bar(position = "fill", aes(y=..count../sum(..count..))) +
-  scale_x_discrete(breaks = unique(cran_genders_by_year$the_year ), 
-                   labels = unique(cran_genders_by_year$the_year )) +
-  theme_minimal(base_size = 14) +
-  xlab("year") +
-  ylab("proportion of packages") +
-  ggtitle("Change over time in gender ratio of R package maintainers") +
-  scale_fill_discrete(name = "gender")
-```
-
-But it looks like there has been a very slight decline in the number of packages maintained by women, especailly since 2011. But the numbers are quite small and probably not significant. 
+The total number of packages maintained by women has increased over time, roughly consistent with the overall increase in the number of packages. Note that for the change over time data we use only packages that have at least one archived version to exclude once-off, drive-by packages that do not reflect a sustained development effort. Let's see how the ratio of females to males has changed over time.
 
 ```{r}
 # table of counts and proportions
@@ -207,9 +188,9 @@ x <- identical(
 xx <- round(props$female_prop, 2))
 ```
 
-As the number of packages has increased, the proportion of maintainers that are women has decreased slightly. Could this be a reflection of changing gender ratios amongst the fields that use R, or something else? 
+In more recent years, as the number of packages has increased, the proportion of maintainers that are women has decreased slightly. Could this be a reflection of changing gender ratios amongst the fields that use R, or something else? 
 
-In any case, let's look to see who are the women that have notable achivements on CRAN. Let's see who were the first, and who has the most.
+In any case, let's look to see who are the women that have notable achivements on CRAN. Let's see who were the first, and who has the most packages.
 
 ```{r}
 # Who are the pioneering women of R?
@@ -218,8 +199,7 @@ table(maintainter_year_unclean_no_na_female[maintainter_year_unclean_no_na_femal
  
 ```
 
-
-A few mis-classified female names, all of these are actually male:
+A few mis-classified female names here, all of these are actually male:
 Xiaofeng Wang, Lin Himmelmann, Na (Michael) Li, Chi Yau
 
 We can define a 'pioneer' as someone maintaining an R package in the first five years of the dataset. Here are the top five pioneering R package maintainers who are women: 
@@ -230,9 +210,7 @@ We can define a 'pioneer' as someone maintaining an R package in the first five 
 * Ji-Hyung Shin    
 * Xiao-Feng Wang    
 
-Samantha Cook was the first female R package maintainer, and Pei Wang was the most prolific during this period.
-
-Here are the top R package maintainers who are women in the whole dataset (2005-2014):
+Samantha Cook was the first female R package maintainer, and Pei Wang was the most prolific during this period. Let's look at the top R package maintainers who are women in the whole dataset (2005-2014):
 
 ```{r}
 # Who are the top women of R, in terms of maintaining CRAN packages?
@@ -242,7 +220,9 @@ maintainter_year_unclean_no_na_female <- maintainer_year_clean[idx & cran_gender
 maintainter_year_unclean_no_na_female %>%
   group_by(name) %>%
   summarise(number_of_packages = length(year)) %>%
-  arrange(desc(number_of_packages))
+  arrange(desc(number_of_packages)) %>%
+  head() %>%
+  kable()
 ```
 
 We know that hadley isn't female, but robin, jean, jan and karline could be male names. So let's look further.
@@ -252,7 +232,9 @@ We know that hadley isn't female, but robin, jean, jan and karline could be male
 maintainer_year_unclean[maintainer_year_clean$name %in% c('robin', 'jean', 'hadley', 'jan'), ] %>%
   group_by(name) %>%
   summarise(number_of_packages = length(year)) %>%
-  arrange(name)
+  arrange(name) %>%
+  kable()
+
 ```
 
 With the aid of Google Image search, we can conclude that all the robins, jeans, and jans in the data are male. So let's remove them from the 'top women in R' table, along with a few other ambiguous names.
@@ -268,12 +250,14 @@ top_women <- maintainer_female %>%
 # get full names
 maintainer_year_unclean$first_name <- maintainer_year_clean$name
 
-top_women_full_names <- maintainer_year_unclean %>%
+maintainer_year_unclean %>%
   filter(first_name %in% top_women$name) %>%
   group_by(name) %>%
   summarise(number_of_packages = length(year)) %>%
-  arrange(desc(number_of_packages))
-top_women_full_names
+  arrange(desc(number_of_packages)) %>%
+  head() %>%
+  kable()
+
 ```
 
 Here we see the top R package maintainers who are women. Karline Soetaert and Hana Sevcikova stand out with more than ten packages each. Soetaert is also the author of two major books on using R published by Springer. Let's see how all this compares to the gender balance in the representative organisation for the R Project. 
@@ -297,7 +281,7 @@ prop_female <- sum(members_gender == 'female') / length(members_gender)
 
 And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation. 
 
-While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' for the many women currently learning and using R. 
+While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R. ]
 
 
 
