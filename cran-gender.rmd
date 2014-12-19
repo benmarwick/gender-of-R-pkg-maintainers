@@ -260,7 +260,7 @@ maintainer_year_unclean %>%
 
 ```
 
-Here we see the top R package maintainers who are women. Karline Soetaert and Hana Sevcikova stand out with more than ten packages each. Soetaert is also the author of two major books on using R published by Springer. Let's see how all this compares to the gender balance in the representative organisation for the R Project. 
+Here we see the top R package maintainers who are women. Karline Soetaert and Hana Sevcikova stand out with more than ten packages each. Soetaert is also the author of two major books on using R published by Springer. Two of them are at the University of Washington, where I am. Let's see how all this compares to the gender balance in the representative organisation for the R Project. 
 
 ```{r}
 # from https://gist.github.com/hadley/3bdb98c09e602c301d76
@@ -281,7 +281,7 @@ prop_female <- sum(members_gender == 'female') / length(members_gender)
 
 And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation. 
 
-While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R. ]
+While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R. 
 
 
 
