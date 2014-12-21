@@ -5,7 +5,7 @@ opts_chunk$set(message=FALSE, warning=FALSE, cache=TRUE)
 
 ## Gender, R package maintainers, and the R Foundation
 
-Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, and how it compares to the R Foundation membership. I started this in June,  motivated by the "Conversation about R’s Gender Gap: The useR! her Panel" at the UseR meeting (http://user2014.stat.ucla.edu/). A recent discussion amongst Jennifer Bryan, Hadley Wickham, and Erin LeDell on twitter where it was noted that only one contributor to R core is a woman, further prompted me to pursue it (https://twitter.com/JennyBryan/status/544970521348034561).
+Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, and how it compares to the R Foundation membership. I started this in June,  motivated by the "Conversation about Râs Gender Gap: The useR! her Panel" at the UseR meeting (http://user2014.stat.ucla.edu/). A recent discussion amongst Jennifer Bryan, Hadley Wickham, and Erin LeDell on twitter where it was noted that only one contributor to R core is a woman, further prompted me to pursue it (https://twitter.com/JennyBryan/status/544970521348034561).
 
 Here's what I've done. First, I looked at the overall counts and ratio of genders of R package maintainers. I found that roughly 15% are women. Second, I had a brief look to see how this has changed over time. I found that the proportion of women maintainers has actually been dropping slightly in recent years. Third, I looked to see how the ratio of genders of R package maintainers, as a proxy for the R user community, is reflected by the R Foundation, as an entity representing users and leading the R Project. I found, as most R users probably know, that the R Foundation is all male, but it should have at least three women on the list to adequetely represent active R developers. I recommend some specific R developers to add to the R Foundation to improve the effectiveness of the Foundation as a group acting in the interests of R Project and its developers and users.
 
@@ -21,6 +21,12 @@ require("dplyr")
 require("XML")
 require("RCurl")
 require("reshape2")
+library("rvest")
+# devtools::install_github("ropensci/gender")
+# devtools::install_github("lmullen/gender-data")
+library("gender")
+# devtools::install_github("hadley/babynames")
+library("babynames")
 ```
 
 ```{r}
@@ -108,7 +114,7 @@ ggplot(props_l, aes(variable, value)) +
   xlab("gender")
 ```
 
-Of all the CRAN packages in this dataset, `r props$female_prop * 100`% are maintained by women. This is consistant with the finding of 14% by the "Conversation about R’s Gender Gap: The useR! her Panel" at the 2014 UseR meeting. Now let's see how that has changed over time.
+Of all the CRAN packages in this dataset, `r props$female_prop * 100`% are maintained by women. This is consistant with the finding of 14% by the "Conversation about Râs Gender Gap: The useR! her Panel" at the 2014 UseR meeting. Now let's see how that has changed over time.
 
 ```{r}
 # change over time
@@ -279,24 +285,22 @@ members_gender <- unlist(lapply(members_gender, function(i) i$gender))
 prop_female <- sum(members_gender == 'female') / length(members_gender)
 ```
 
-And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation, maybe Bettina Grün, who is currently one of the editors of the R Journal. 
+And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation, maybe Bettina GrÃ¼n, who is currently one of the editors of the R Journal. 
 
 While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R.
 
 -------
 Suggestions from others:
 * Find the number of packages that R Foundation and R Core members maintain
-* consider Bioconductor packages also
-* github packages with http://www.rdocumentation.org/packages?type=github
+* consider github and Bioconductor packages -  done
 * commits to R core
-* names in the NEWS (of people acknowledged for reporting bugs)
-* bugzilla: names of people who submitted bugs that resulted in fixes
+* names in the NEWS (of people acknowledged for reporting bugs) - done
+* bugzilla: names of people who submitted bugs that resulted in fixes - done
 * authors of papers in the R journal
 * why so few? 
 
 ```{r}
 # People's names in github packages
-library(rvest)
 
 # how many pages of results?
 rdoc <- html("http://www.rdocumentation.org/packages?type=github")
@@ -320,7 +324,7 @@ relative_urls <- unlist(relative_urls)
 base_url <- "http://www.rdocumentation.org/"
 github_package_maintainer <- vector("list", length(relative_urls))
 for(i in seq(length(relative_urls))){
- top_of_page<- paste0("http://www.rdocumentation.org", relative_urls[i]) %>%
+ top_of_page<- paste0(base_url", relative_urls[i]) %>%
     html() %>%
     html_nodes('span')
  github_package_maintainer[[i]] <- html_text(top_of_page[[8]]) 
@@ -359,11 +363,11 @@ relative_urls <- unlist(relative_urls)
 base_url <- "http://www.rdocumentation.org/"
 biocon_package_maintainer <- vector("list", length(relative_urls))
 for(i in seq(length(relative_urls))){
- top_of_page<- paste0("http://www.rdocumentation.org", relative_urls[i]) %>%
+ top_of_page<- paste0(base_url, relative_urls[i]) %>%
     html() %>%
     html_nodes('span')
  biocon_package_maintainer[[i]] <- html_text(top_of_page[[8]]) 
- print(paste(i, relative_urls[i], sep = " ")) # interactive use only
+ # print(paste(i, relative_urls[i], sep = " ")) # interactive use only
 }
 
 biocon_package_maintainer <- unlist(biocon_package_maintainer)
@@ -388,17 +392,14 @@ vector_news_split <- unlist(lapply(vector_news, function(i) strsplit(i, " ")))
 vector_news_split <- tolower(unique(vector_news_split))
 
 # get first names
-# devtools::install_github("hadley/babynames")
-library(babynames)
+
 first_names <- tolower(babynames$name)
 
 # subset words in the NEWS to keep only names
 news_names <- vector_news_split[vector_news_split %in% first_names]
 
 # determine probable gender of names in NEWS
-# devtools::install_github("ropensci/gender")
-# devtools::install_github("lmullen/gender-data")
-library(gender)
+
 news_genders <- gender(news_names)
 
 # convert list to dataframe
@@ -409,7 +410,7 @@ news_genders_female <- news_genders_out[with(news_genders_out, gender == "female
                                           proportion_female > 0.8 &
                                           !is.na(proportion_female)), ]
 
-# obvious femal names
+# obvious female names
 females <- c("eliabeth", "kate", "di", "sarah", "karline", "claudia", "birgit")
 
 # get surnames
@@ -420,5 +421,29 @@ for(i in seq_along(vector_news_split)){
 news_full_namesunique(full_names[full_names != ""])
 ```
 
+```{r}
+# People submitting bugs that lead to fixes on bugzilla
 
+# Table of all bugs with FIXED by chrono order
+bugs <- "https://bugs.r-project.org/bugzilla3/buglist.cgi?limit=0&order=changeddate%2Cpriority%2Cbug_severity&product=R&query_based_on=&query_format=advanced&resolution=FIXED"
+
+bugs_urls <- html(bugs) %>%
+  html_nodes(".bz_id_column a") %>%
+  html_attr("href")
+
+# now get the submitter for each bug
+base_url <- "https://bugs.r-project.org/bugzilla3/"
+bug_submitter <- vector("list", length(bugs_urls))
+for(i in seq(length(bugs_urls))){
+ bug_submitter[[i]] <- paste0(base_url, bugs_urls[i]) %>%
+    html() %>%
+    html_nodes('td+ .bz_show_bug_column .fn') %>%
+    html_text()
+ # print(paste(i, bugs_urls[i], sep = " ")) # interactive use only
+}
+
+bug_submitter <- unlist(bug_submitter)
+
+
+```
 
