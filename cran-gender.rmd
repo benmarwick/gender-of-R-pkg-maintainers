@@ -290,7 +290,8 @@ And the proportion of R Foundation members that are female is `r prop_female`. G
 While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R.
 
 -------
-Suggestions from others:
+Suggestions from Erin:
+* refrain from making any statements about voting particular women in to the R foundation.
 * Find the number of packages that R Foundation and R Core members maintain
 * consider github and Bioconductor packages -  done
 * commits to R core
@@ -298,6 +299,13 @@ Suggestions from others:
 * bugzilla: names of people who submitted bugs that resulted in fixes - done
 * authors of papers in the R journal
 * why so few? 
+
+Suggestions from Di:
+* Mosaic plot
+* keeping the package name with the data so that we can look up the top hits. Its good to have more than counts as support.
+* look at author lists too. Its harder to pull out first names from the list, but we could use item after “,”. It doesn’t lend as much weight as the maintainer but it would be interesting to have the gender data on this too.
+* it might be necessary to manually look at names that are not on the US baby registry, I know one of my grad students Eunkyung Lee (Assoc Prof at EWHA) had a package in R in 2003. Her name would not be flagged as female. classPP has been archived, but the code for the most part has been migrated to other packages now, tourr, PPTree. There will be others, and I’d be happy to try to flag these.
+
 
 ```{r}
 # People's names in github packages
@@ -443,6 +451,22 @@ for(i in seq(length(bugs_urls))){
 }
 
 bug_submitter <- unlist(bug_submitter)
+# get first names only
+bug_submitter_first_name <- clean_up(bug_submitter)
+# don't want jitterbug
+bug_submitter_first_name <- bug_submitter_first_name[bug_submitter_first_name != "jitterbug"]
+
+# get genders
+bug_submitter_gender <- gender(bug_submitter_first_name)
+
+# convert list to dataframe
+bug_submitter_gender_out <- do.call(rbind.data.frame, bug_submitter_gender)
+
+# keep only female names
+bug_submitter_female <- bug_submitter_gender_out[with(bug_submitter_gender_out, 
+                                                 gender == "female" &
+                                                 proportion_female > 0.8 &
+                                                 !is.na(proportion_female)), ]
 
 
 ```
