@@ -279,9 +279,146 @@ members_gender <- unlist(lapply(members_gender, function(i) i$gender))
 prop_female <- sum(members_gender == 'female') / length(members_gender)
 ```
 
-And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation. 
+And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation, maybe Bettina Grün, who is currently one of the editors of the R Journal. 
 
-While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R. 
+While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R.
+
+-------
+Suggestions from others:
+* Find the number of packages that R Foundation and R Core members maintain
+* consider Bioconductor packages also
+* github packages with http://www.rdocumentation.org/packages?type=github
+* commits to R core
+* names in the NEWS (of people acknowledged for reporting bugs)
+* bugzilla: names of people who submitted bugs that resulted in fixes
+* authors of papers in the R journal
+* why so few? 
+
+```{r}
+# People's names in github packages
+library(rvest)
+
+# how many pages of results?
+rdoc <- html("http://www.rdocumentation.org/packages?type=github")
+n_pages_results <- rdoc %>%
+  html_nodes(".last a") %>%
+  html_attr("href") %>%
+  gsub("[^0-9]", "", .) %>%
+  as.numeric()
+            
+relative_urls <- vector("list", n_pages_results)
+for(i in seq(n_pages_results)){ # 
+  rdoc <- paste0("http://www.rdocumentation.org/packages?page=", i, "&type=github")
+  relative_urls[[i]] <- html(rdoc) %>%
+  html_nodes("td:nth-child(1) a") %>%
+  html_attr("href")
+  # print(rdoc) # for interactive use only
+}
+relative_urls <- unlist(relative_urls)
+
+# now get the maintainer for each github package
+base_url <- "http://www.rdocumentation.org/"
+github_package_maintainer <- vector("list", length(relative_urls))
+for(i in seq(length(relative_urls))){
+ top_of_page<- paste0("http://www.rdocumentation.org", relative_urls[i]) %>%
+    html() %>%
+    html_nodes('span')
+ github_package_maintainer[[i]] <- html_text(top_of_page[[8]]) 
+ print(paste(i, relative_urls[i], sep = " ")) # interactive use only
+}
+
+github_package_maintainer <- unlist(github_package_maintainer)
+
+```
+
+
+```{r}
+# People's names in bioconductor packages
+http://www.rdocumentation.org/packages?type=bioconductor
+
+
+# how many pages of results?
+rdoc <- html("http://www.rdocumentation.org/packages?type=bioconductor")
+n_pages_results <- rdoc %>%
+  html_nodes(".last a") %>%
+  html_attr("href") %>%
+  gsub("[^0-9]", "", .) %>%
+  as.numeric()
+            
+relative_urls <- vector("list", n_pages_results)
+for(i in seq(n_pages_results)){ # 
+  rdoc <- paste0("http://www.rdocumentation.org/packages?page=", i, "&type=bioconductor")
+  relative_urls[[i]] <- html(rdoc) %>%
+  html_nodes("td:nth-child(1) a") %>%
+  html_attr("href")
+  # print(rdoc) # for interactive use only
+}
+relative_urls <- unlist(relative_urls)
+
+# now get the maintainer for each github package
+base_url <- "http://www.rdocumentation.org/"
+biocon_package_maintainer <- vector("list", length(relative_urls))
+for(i in seq(length(relative_urls))){
+ top_of_page<- paste0("http://www.rdocumentation.org", relative_urls[i]) %>%
+    html() %>%
+    html_nodes('span')
+ biocon_package_maintainer[[i]] <- html_text(top_of_page[[8]]) 
+ print(paste(i, relative_urls[i], sep = " ")) # interactive use only
+}
+
+biocon_package_maintainer <- unlist(biocon_package_maintainer)
+
+```
+  
+  
+```{r}
+# People named in the NEWS
+
+# navigate to local R installation dir
+setwd(system.file())
+setwd('../../doc')
+
+# get all news files
+news <- list.files( pattern = "NEWS", full.names = TRUE,recursive = TRUE)
+
+# split in a vector of unique words
+vector_news <- sapply(news, function(i) readLines(i) )
+vector_news <- unique(vector_news[vector_news != ""])
+vector_news_split <- unlist(lapply(vector_news, function(i) strsplit(i, " ")))
+vector_news_split <- tolower(unique(vector_news_split))
+
+# get first names
+# devtools::install_github("hadley/babynames")
+library(babynames)
+first_names <- tolower(babynames$name)
+
+# subset words in the NEWS to keep only names
+news_names <- vector_news_split[vector_news_split %in% first_names]
+
+# determine probable gender of names in NEWS
+# devtools::install_github("ropensci/gender")
+# devtools::install_github("lmullen/gender-data")
+library(gender)
+news_genders <- gender(news_names)
+
+# convert list to dataframe
+news_genders_out <- do.call(rbind.data.frame, news_genders)
+
+# keep only female names
+news_genders_female <- news_genders_out[with(news_genders_out, gender == "female" &
+                                          proportion_female > 0.8 &
+                                          !is.na(proportion_female)), ]
+
+# obvious femal names
+females <- c("eliabeth", "kate", "di", "sarah", "karline", "claudia", "birgit")
+
+# get surnames
+full_names <- vector("list", length = length(vector_news_split))
+for(i in seq_along(vector_news_split)){
+  full_names[i] <- ifelse(vector_news_split[i] %in% news_genders_female$name, paste(vector_news_split[i], vector_news_split[i+1], sep = " "), "")
+ }
+news_full_namesunique(full_names[full_names != ""])
+```
 
 
 
