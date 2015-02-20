@@ -5,7 +5,7 @@ opts_chunk$set(message=FALSE, warning=FALSE, cache=TRUE)
 
 ## Gender, R package maintainers, and the R Foundation
 
-Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, and how it compares to the R Foundation membership. I started this in June,  motivated by the "Conversation about Râs Gender Gap: The useR! her Panel" at the UseR meeting (http://user2014.stat.ucla.edu/). A recent discussion amongst Jennifer Bryan, Hadley Wickham, and Erin LeDell on twitter where it was noted that only one contributor to R core is a woman, further prompted me to pursue it (https://twitter.com/JennyBryan/status/544970521348034561).
+Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, and how it compares to the R Foundation membership. I started this in June,  motivated by the "Conversation about RÃ¢Â€Â™s Gender Gap: The useR! her Panel" at the UseR meeting (http://user2014.stat.ucla.edu/). A recent discussion amongst Jennifer Bryan, Hadley Wickham, and Erin LeDell on twitter where it was noted that only one contributor to R core is a woman, further prompted me to pursue it (https://twitter.com/JennyBryan/status/544970521348034561).
 
 Here's what I've done. First, I looked at the overall counts and ratio of genders of R package maintainers. I found that roughly 15% are women. Second, I had a brief look to see how this has changed over time. I found that the proportion of women maintainers has actually been dropping slightly in recent years. Third, I looked to see how the ratio of genders of R package maintainers, as a proxy for the R user community, is reflected by the R Foundation, as an entity representing users and leading the R Project. I found, as most R users probably know, that the R Foundation is all male, but it should have at least three women on the list to adequetely represent active R developers. I recommend some specific R developers to add to the R Foundation to improve the effectiveness of the Foundation as a group acting in the interests of R Project and its developers and users.
 
@@ -114,7 +114,7 @@ ggplot(props_l, aes(variable, value)) +
   xlab("gender")
 ```
 
-Of all the CRAN packages in this dataset, `r props$female_prop * 100`% are maintained by women. This is consistant with the finding of 14% by the "Conversation about Râs Gender Gap: The useR! her Panel" at the 2014 UseR meeting. Now let's see how that has changed over time.
+Of all the CRAN packages in this dataset, `r props$female_prop * 100`% are maintained by women. This is consistant with the finding of 14% by the "Conversation about RÃ¢Â€Â™s Gender Gap: The useR! her Panel" at the 2014 UseR meeting. Now let's see how that has changed over time.
 
 ```{r}
 # change over time
@@ -285,7 +285,7 @@ members_gender <- unlist(lapply(members_gender, function(i) i$gender))
 prop_female <- sum(members_gender == 'female') / length(members_gender)
 ```
 
-And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation, maybe Bettina GrÃ¼n, who is currently one of the editors of the R Journal. 
+And the proportion of R Foundation members that are female is `r prop_female`. Given this underrepresentation, it might be a good idea to vote in Karline Soetaert, Hana Sevcikova and one other active and prominent female R developer as ordinary members of the R Foundation, maybe Bettina GrÃƒÂ¼n, who is currently one of the editors of the R Journal. 
 
 While the absolute size of their non-monetary contributions to the R Project might be smaller than many males who are not members of the R Foundation, it is difficult to imagine how an all-male membership can adequentely serve as 'reference points' (see the [second goal](http://www.r-project.org/foundation/) of the foundation) for the many women currently learning and using R.
 
@@ -303,8 +303,8 @@ Suggestions from Erin:
 Suggestions from Di:
 * Mosaic plot
 * keeping the package name with the data so that we can look up the top hits. Its good to have more than counts as support.
-* look at author lists too. Its harder to pull out first names from the list, but we could use item after “,”. It doesn’t lend as much weight as the maintainer but it would be interesting to have the gender data on this too.
-* it might be necessary to manually look at names that are not on the US baby registry, I know one of my grad students Eunkyung Lee (Assoc Prof at EWHA) had a package in R in 2003. Her name would not be flagged as female. classPP has been archived, but the code for the most part has been migrated to other packages now, tourr, PPTree. There will be others, and I’d be happy to try to flag these.
+* look at author lists too. Its harder to pull out first names from the list, but we could use item after â€œ,â€. It doesnâ€™t lend as much weight as the maintainer but it would be interesting to have the gender data on this too.
+* it might be necessary to manually look at names that are not on the US baby registry, I know one of my grad students Eunkyung Lee (Assoc Prof at EWHA) had a package in R in 2003. Her name would not be flagged as female. classPP has been archived, but the code for the most part has been migrated to other packages now, tourr, PPTree. There will be others, and Iâ€™d be happy to try to flag these.
 
 
 ```{r}
@@ -329,24 +329,73 @@ for(i in seq(n_pages_results)){ #
 relative_urls <- unlist(relative_urls)
 
 # now get the maintainer for each github package
-base_url <- "http://www.rdocumentation.org/"
+base_url <- "http://www.rdocumentation.org"
 github_package_maintainer <- vector("list", length(relative_urls))
 for(i in seq(length(relative_urls))){
- top_of_page<- paste0(base_url", relative_urls[i]) %>%
-    html() %>%
-    html_nodes('span')
- github_package_maintainer[[i]] <- html_text(top_of_page[[8]]) 
- print(paste(i, relative_urls[i], sep = " ")) # interactive use only
+    top_of_page <- paste0(base_url, relative_urls[i]) %>% 
+      html() %>% 
+      html_nodes('span')
+    # handle errors
+ result <- try(
+   github_package_maintainer[[i]] <- html_text(top_of_page[[8]])    
+  ); if(class(result) == "try-error") next;
+ print(paste(i, relative_urls[i], sep = " ")); # interactive use only
 }
 
 github_package_maintainer <- unlist(github_package_maintainer)
+
+# clean up to get just first names in lower case
+github_package_maintainer_first <- clean_up(github_package_maintainer)
+
+# compute gender of package maintainers (this takes some time!)
+github_package_maintainer_with_nas <- gender(github_package_maintainer_first)
+# remove NA (where we can't be sure of the gender because
+# we've only got a first initial, or similar)
+github_package_maintainer_with_nas <- unlist(lapply(github_package_maintainer_with_nas, function(i) i$gender))
+idx <- !is.na(github_package_maintainer_with_nas)
+github_package_maintainer_gender <- github_package_maintainer_with_nas[idx]
+
+table(github_package_maintainer_gender)
 
 ```
 
 
 ```{r}
+# plots...
+# overall counts
+github_counts <- data.frame(female = github_package_maintainer_gender == "female" ,
+                    male = github_package_maintainer_gender == "male")
+github_counts_l <- melt(github_counts + 0)
+ggplot(github_counts_l, aes(variable, value)) +
+  geom_bar(stat = "identity") +
+  theme_minimal(base_size = 14) +
+  ggtitle("GitHub package maintainers by gender") +
+  ylab("Number of packages") +
+  xlab("gender")
+```
+
+
+```{r}
+# overall ratio
+github_all <- length(github_package_maintainer_gender)
+github_props <- round(data.frame(
+  female_prop =   sum(github_package_maintainer_gender == "female")/gituhub_all,
+  male_prop =     sum(github_package_maintainer_gender == "male")/gituhub_all), 2)
+github_props_l <- melt(github_props)
+ggplot(github_props_l, aes(variable, value)) +
+  geom_bar(stat = "identity") +
+  theme_minimal(base_size = 14) +
+  ggtitle("GitHub package maintainers by gender") +
+    ylab("Proportion of all packages") +
+  xlab("gender")
+```
+
+Up to here... 
+
+
+```{r eval = FALSE}
 # People's names in bioconductor packages
-http://www.rdocumentation.org/packages?type=bioconductor
+# http://www.rdocumentation.org/packages?type=bioconductor
 
 
 # how many pages of results?
@@ -383,7 +432,7 @@ biocon_package_maintainer <- unlist(biocon_package_maintainer)
 ```
   
   
-```{r}
+```{r eval = FALSE}}
 # People named in the NEWS
 
 # navigate to local R installation dir
@@ -429,7 +478,7 @@ for(i in seq_along(vector_news_split)){
 news_full_namesunique(full_names[full_names != ""])
 ```
 
-```{r}
+```{r eval = FALSE}}
 # People submitting bugs that lead to fixes on bugzilla
 
 # Table of all bugs with FIXED by chrono order
@@ -470,4 +519,3 @@ bug_submitter_female <- bug_submitter_gender_out[with(bug_submitter_gender_out,
 
 
 ```
-
