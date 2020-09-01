@@ -3,7 +3,7 @@
 View the results here: https://benmarwick.github.io/gender-of-R-pkg-maintainers/cran-gender.html
 
 Here is a quick look at the gender ratios of R package maintainers, and how that has changed over time, 
-and how it compares to the R Foundation membership. I started this in June, motivated by the 
+and how it compares to the R Foundation membership. I did this analysis in 2014, motivated by the 
 “Conversation about R’s Gender Gap: The useR! her Panel” at the UseR meeting (http://user2014.stat.ucla.edu/). 
 A recent discussion amongst Jennifer Bryan, Hadley Wickham, and Erin LeDell on twitter where it was 
 noted that only one contributor to R core is a woman, further prompted me to pursue it 
